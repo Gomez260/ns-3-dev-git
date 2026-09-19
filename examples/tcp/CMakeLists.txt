@@ -82,6 +82,16 @@ build_example(
 )
 
 build_example(
+  NAME cubic-experiment
+  SOURCE_FILES cubic-experiment.cc
+  LIBRARIES_TO_LINK
+    ${libpoint-to-point}
+    ${libinternet}
+    ${libapplications}
+    ${libflow-monitor}
+)
+
+build_example(
   NAME tcp-pacing
   SOURCE_FILES tcp-pacing.cc
   LIBRARIES_TO_LINK

@@ -324,7 +324,7 @@ TraceNextRx(std::string& next_rx_seq_file_name, uint32_t nodeId)
     AsciiTraceHelper ascii;
     nextRxStream[nodeId] = ascii.CreateFileStream(next_rx_seq_file_name);
     Config::Connect("/NodeList/" + std::to_string(nodeId) +
-                        "/$ns3::TcpL4Protocol/SocketList/1/RxBuffer/NextRxSequence",
+                        "/$ns3::TcpL4Protocol/SocketList/0/RxBuffer/NextRxSequence",
                     MakeCallback(&NextRxTracer));
 }
 
@@ -339,6 +339,7 @@ main(int argc, char* argv[])
     std::string access_delay = "45ms";
     bool tracing = false;
     std::string prefix_file_name = "CubicExperiment";
+    std::string results_dir = "../../results";
     uint64_t data_mbytes = 0;
     uint32_t mtu_bytes = 400;
     uint16_t num_flows = 4;
@@ -364,6 +365,7 @@ main(int argc, char* argv[])
     cmd.AddValue("access_delay", "Access link delay", access_delay);
     cmd.AddValue("tracing", "Flag to enable/disable tracing", tracing);
     cmd.AddValue("prefix_name", "Prefix of output trace file", prefix_file_name);
+    cmd.AddValue("results_dir", "Directory for output results", results_dir);
     cmd.AddValue("data", "Number of Megabytes of data to transmit", data_mbytes);
     cmd.AddValue("mtu", "Size of IP packets to send in bytes", mtu_bytes);
     cmd.AddValue("num_flows", "Number of flows", num_flows);
@@ -378,6 +380,7 @@ main(int argc, char* argv[])
     cmd.AddValue("recovery", "Recovery algorithm type to use (e.g., ns3::TcpPrrRecovery", recovery);
     cmd.Parse(argc, argv);
 
+    std::string output_prefix = results_dir + "/" + prefix_file_name;
     transport_prot = std::string("ns3::") + transport_prot;
 
     SeedManager::SetSeed(1);
@@ -551,7 +554,7 @@ main(int argc, char* argv[])
     if (tracing)
     {
         Ptr<OutputStreamWrapper> ascii_wrap =
-            new OutputStreamWrapper(prefix_file_name + "-ascii", std::ios::out);
+            new OutputStreamWrapper( output_prefix + "-ascii", std::ios::out);
         
         stack.EnableAsciiIpv4All(ascii_wrap);
         for (uint16_t index = 0; index < num_flows; index++)
@@ -575,45 +578,45 @@ main(int argc, char* argv[])
 
             Simulator::Schedule(Seconds(start_time * index + 0.00001),
                                 &TraceCwnd,
-                                prefix_file_name + flowString + "-cwnd.data",
+                                output_prefix + flowString + "-cwnd.data",
                                 sourceNodeId);
 
             Simulator::Schedule(Seconds(start_time * index + 0.00001),
                                 &TraceSsThresh,
-                                prefix_file_name + flowString + "-ssth.data",
+                                output_prefix + flowString + "-ssth.data",
                                 sourceNodeId);
 
             Simulator::Schedule(Seconds(start_time * index + 0.00001),
                                 &TraceRtt,
-                                prefix_file_name + flowString + "-rtt.data",
+                                output_prefix + flowString + "-rtt.data",
                                 sourceNodeId);
 
             Simulator::Schedule(Seconds(start_time * index + 0.00001),
                                 &TraceRto,
-                                prefix_file_name + flowString + "-rto.data",
+                                output_prefix + flowString + "-rto.data",
                                 sourceNodeId);
 
             Simulator::Schedule(Seconds(start_time * index + 0.00001),
                                 &TraceNextTx,
-                                prefix_file_name + flowString + "-next-tx.data",
+                                output_prefix + flowString + "-next-tx.data",
                                 sourceNodeId);
 
             Simulator::Schedule(Seconds(start_time * index + 0.00001),
                                 &TraceInFlight,
-                                prefix_file_name + flowString + "-inflight.data",
+                                output_prefix + flowString + "-inflight.data",
                                 sourceNodeId);
 
             Simulator::Schedule(Seconds(start_time * index + 0.1),
                                 &TraceNextRx,
-                                prefix_file_name + flowString + "-next-rx.data",
+                                output_prefix + flowString + "-next-rx.data",
                                 sinkNodeId);
         }
     }
 
     if (pcap)
     {
-        UnReLink.EnablePcapAll(prefix_file_name, true);
-        LocalLink.EnablePcapAll(prefix_file_name, true);
+        UnReLink.EnablePcapAll(output_prefix, true);
+        LocalLink.EnablePcapAll(output_prefix, true);
     }
 
     // Flow monitor
@@ -628,7 +631,7 @@ main(int argc, char* argv[])
 
     if (flow_monitor)
     {
-        flowHelper.SerializeToXmlFile(prefix_file_name + ".flowmonitor", true, true);
+        flowHelper.SerializeToXmlFile(output_prefix + ".flowmonitor", true, true);
     }
 
     Simulator::Destroy();

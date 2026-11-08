@@ -36,6 +36,8 @@
 #include "ns3/traffic-control-module.h"
 #include "ns3/udp-header.h"
 
+#include <sstream>
+#include <vector>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -337,6 +339,7 @@ main(int argc, char* argv[])
     std::string delay = "0.01ms";
     std::string access_bandwidth = "10Mbps";
     std::string access_delay = "45ms";
+    std::string access_delays = "";
     bool tracing = false;
     std::string prefix_file_name = "CubicExperiment";
     std::string results_dir = "../../results";
@@ -363,6 +366,7 @@ main(int argc, char* argv[])
     cmd.AddValue("delay", "Bottleneck delay", delay);
     cmd.AddValue("access_bandwidth", "Access link bandwidth", access_bandwidth);
     cmd.AddValue("access_delay", "Access link delay", access_delay);
+    cmd.AddValue("access_delays","Comma-separated access delays for each flow",access_delays);
     cmd.AddValue("tracing", "Flag to enable/disable tracing", tracing);
     cmd.AddValue("prefix_name", "Prefix of output trace file", prefix_file_name);
     cmd.AddValue("results_dir", "Directory for output results", results_dir);
@@ -379,6 +383,34 @@ main(int argc, char* argv[])
     cmd.AddValue("sack", "Enable or disable SACK option", sack);
     cmd.AddValue("recovery", "Recovery algorithm type to use (e.g., ns3::TcpPrrRecovery", recovery);
     cmd.Parse(argc, argv);
+
+    std::vector<std::string> flow_access_delays;
+
+    if (access_delays.empty())
+    {
+        flow_access_delays.assign(num_flows, access_delay);
+    }
+    else
+    {
+        std::stringstream ss(access_delays);
+        std::string item;
+
+        while (std::getline(ss, item, ','))
+        {
+            if (item.empty())
+            {
+                NS_FATAL_ERROR("Empty value in access_delays");
+            }
+
+            flow_access_delays.push_back(item);
+        }
+
+        if (flow_access_delays.size() != num_flows)
+        {
+            NS_FATAL_ERROR("access_delays must contain exactly "
+                       << num_flows << " values");
+        }
+    }
 
     std::string output_prefix = results_dir + "/" + prefix_file_name;
     transport_prot = std::string("ns3::") + transport_prot;
@@ -459,14 +491,23 @@ main(int argc, char* argv[])
     // and the channels between the sources/sinks and the gateways
     PointToPointHelper LocalLink;
     LocalLink.SetDeviceAttribute("DataRate", StringValue(access_bandwidth));
-    LocalLink.SetChannelAttribute("Delay", StringValue(access_delay));
 
     Ipv4InterfaceContainer sink_interfaces;
 
     DataRate access_b(access_bandwidth);
     DataRate bottle_b(bandwidth);
-    Time access_d(access_delay);
+    Time access_d = Seconds(0);
     Time bottle_d(delay);
+
+    for (const auto& flowDelay : flow_access_delays)
+    {
+        Time currentDelay(flowDelay);
+
+        if (currentDelay > access_d)
+        {
+            access_d = currentDelay;
+        }
+    }
 
     uint32_t size = static_cast<uint32_t>((std::min(access_b, bottle_b).GetBitRate() / 8) *
                                           ((access_d + bottle_d) * 2).GetSeconds());
@@ -481,6 +522,7 @@ main(int argc, char* argv[])
     {
         NetDeviceContainer devices;
 
+        LocalLink.SetChannelAttribute("Delay", StringValue(flow_access_delays[i]));
         devices = LocalLink.Install(sources.Get(i), gateways.Get(0));
         tchPfifo.Install(devices);
 
@@ -515,6 +557,7 @@ main(int argc, char* argv[])
     {
         NetDeviceContainer devices;
 
+        LocalLink.SetChannelAttribute("Delay", StringValue(flow_access_delays[i]));
         devices = LocalLink.Install(gateways.Get(1), sinks.Get(i));
         tchPfifo.Install(devices);
 

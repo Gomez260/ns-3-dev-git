@@ -43,7 +43,7 @@ TcpCubicRtt::GetTypeId()
                           "Beta for multiplicative decrease",
                           DoubleValue(0.7),
                           MakeDoubleAccessor(&TcpCubicRtt::m_beta),
-                          MakeDoubleChecker<double>(0.0, 1.0))
+                          MakeDoubleChecker<double>(0.0, 0.99))
             .AddAttribute("BetaEcn",
                           "Beta for multiplicative decrease for ABE",
                           DoubleValue(0.85), // According to RFC 8511 (ABE)
@@ -132,7 +132,7 @@ TcpCubicRtt::GetTypeId()
                           "Maximum adaptive Beta",
                           DoubleValue(0.85),
                           MakeDoubleAccessor(&TcpCubicRtt::m_betaMax),
-                          MakeDoubleChecker<double>(0.0, 1.0));
+                          MakeDoubleChecker<double>(0.0, 0.99));
     return tid;
 }
 

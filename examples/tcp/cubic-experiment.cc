@@ -58,8 +58,7 @@ static std::map<uint32_t, Ptr<OutputStreamWrapper>> rtoStream;      //!< RTO out
 static std::map<uint32_t, Ptr<OutputStreamWrapper>> nextTxStream;   //!< Next TX output stream.
 static std::map<uint32_t, Ptr<OutputStreamWrapper>> nextRxStream;   //!< Next RX output stream.
 static std::map<uint32_t, Ptr<OutputStreamWrapper>> inFlightStream; //!< In flight output stream.
-static std::map<uint32_t, uint32_t> cWndValue;                      //!< congestion window value.
-static std::map<uint32_t, uint32_t> ssThreshValue;                  //!< SlowStart threshold value.
+
 
 /**
  * Get the Node Id From Context.
@@ -93,13 +92,7 @@ CwndTracer(std::string context, uint32_t oldval, uint32_t newval)
         firstCwnd[nodeId] = false;
     }
     *cWndStream[nodeId]->GetStream() << Simulator::Now().GetSeconds() << " " << newval << std::endl;
-    cWndValue[nodeId] = newval;
 
-    if (!firstSshThr[nodeId])
-    {
-        *ssThreshStream[nodeId]->GetStream()
-            << Simulator::Now().GetSeconds() << " " << ssThreshValue[nodeId] << std::endl;
-    }
 }
 
 /**
@@ -121,13 +114,7 @@ SsThreshTracer(std::string context, uint32_t oldval, uint32_t newval)
     }
     *ssThreshStream[nodeId]->GetStream()
         << Simulator::Now().GetSeconds() << " " << newval << std::endl;
-    ssThreshValue[nodeId] = newval;
 
-    if (!firstCwnd[nodeId])
-    {
-        *cWndStream[nodeId]->GetStream()
-            << Simulator::Now().GetSeconds() << " " << cWndValue[nodeId] << std::endl;
-    }
 }
 
 /**

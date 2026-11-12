@@ -46,20 +46,20 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("TcpVariantsComparison");
 
-static std::map<uint32_t, bool> firstCwnd;                      //!< First congestion window.
-static std::map<uint32_t, bool> firstSshThr;                    //!< First SlowStart threshold.
-static std::map<uint32_t, bool> firstRtt;                       //!< First RTT.
-static std::map<uint32_t, bool> firstRto;                       //!< First RTO.
-static std::map<uint32_t, Ptr<OutputStreamWrapper>> cWndStream; //!< Congstion window output stream.
+static std::map<uint32_t, bool> firstCwnd;                       //!< First congestion window.
+static std::map<uint32_t, bool> firstSshThr;                     //!< First SlowStart threshold.
+static std::map<uint32_t, bool> firstRtt;                        //!< First RTT.
+static std::map<uint32_t, bool> firstRto;                        //!< First RTO.
+static std::map<uint32_t, Ptr<OutputStreamWrapper>> cWndStream;  //!< Congstion window output stream.
 static std::map<uint32_t, Ptr<OutputStreamWrapper>>
-    ssThreshStream; //!< SlowStart threshold output stream.
-static std::map<uint32_t, Ptr<OutputStreamWrapper>> rttStream;      //!< RTT output stream.
-static std::map<uint32_t, Ptr<OutputStreamWrapper>> rtoStream;      //!< RTO output stream.
-static std::map<uint32_t, Ptr<OutputStreamWrapper>> nextTxStream;   //!< Next TX output stream.
-static std::map<uint32_t, Ptr<OutputStreamWrapper>> nextRxStream;   //!< Next RX output stream.
-static std::map<uint32_t, Ptr<OutputStreamWrapper>> inFlightStream; //!< In flight output stream.
-static std::map<uint32_t, uint32_t> cWndValue;                      //!< congestion window value.
-static std::map<uint32_t, uint32_t> ssThreshValue;                  //!< SlowStart threshold value.
+    ssThreshStream;  //!< SlowStart threshold output stream.
+static std::map<uint32_t, Ptr<OutputStreamWrapper>> rttStream;       //!< RTT output stream.
+static std::map<uint32_t, Ptr<OutputStreamWrapper>> rtoStream;       //!< RTO output stream.
+static std::map<uint32_t, Ptr<OutputStreamWrapper>> nextTxStream;    //!< Next TX output stream.
+static std::map<uint32_t, Ptr<OutputStreamWrapper>> nextRxStream;    //!< Next RX output stream.
+static std::map<uint32_t, Ptr<OutputStreamWrapper>> inFlightStream;  //!< In flight output stream.
+static std::map<uint32_t, uint32_t> cWndValue;                       //!< congestion window value.
+static std::map<uint32_t, uint32_t> ssThreshValue;                   //!< SlowStart threshold value.
 
 /**
  * Get the Node Id From Context.
@@ -94,12 +94,6 @@ CwndTracer(std::string context, uint32_t oldval, uint32_t newval)
     }
     *cWndStream[nodeId]->GetStream() << Simulator::Now().GetSeconds() << " " << newval << std::endl;
     cWndValue[nodeId] = newval;
-
-    if (!firstSshThr[nodeId])
-    {
-        *ssThreshStream[nodeId]->GetStream()
-            << Simulator::Now().GetSeconds() << " " << ssThreshValue[nodeId] << std::endl;
-    }
 }
 
 /**
@@ -122,12 +116,6 @@ SsThreshTracer(std::string context, uint32_t oldval, uint32_t newval)
     *ssThreshStream[nodeId]->GetStream()
         << Simulator::Now().GetSeconds() << " " << newval << std::endl;
     ssThreshValue[nodeId] = newval;
-
-    if (!firstCwnd[nodeId])
-    {
-        *cWndStream[nodeId]->GetStream()
-            << Simulator::Now().GetSeconds() << " " << cWndValue[nodeId] << std::endl;
-    }
 }
 
 /**
@@ -530,7 +518,6 @@ main(int argc, char* argv[])
         address.Assign(devices);
     }
 
-
     // Gateway A → Gateway B
     NetDeviceContainer bottleneckDevices;
     bottleneckDevices = UnReLink.Install(gateways.Get(0), gateways.Get(1));
@@ -567,12 +554,12 @@ main(int argc, char* argv[])
         sink_interfaces.Add(interfaces.Get(1));
     }
 
-        NS_LOG_INFO("Initialize Global Routing.");
-        Ipv4GlobalRoutingHelper::PopulateRoutingTables();
+    NS_LOG_INFO("Initialize Global Routing.");
+    Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
-        uint16_t port = 50000;
-        Address sinkLocalAddress(InetSocketAddress(Ipv4Address::GetAny(), port));
-        PacketSinkHelper sinkHelper("ns3::TcpSocketFactory", sinkLocalAddress);
+    uint16_t port = 50000;
+    Address sinkLocalAddress(InetSocketAddress(Ipv4Address::GetAny(), port));
+    PacketSinkHelper sinkHelper("ns3::TcpSocketFactory", sinkLocalAddress);
 
     for (uint32_t i = 0; i < sources.GetN(); i++)
     {
@@ -598,7 +585,7 @@ main(int argc, char* argv[])
     {
         Ptr<OutputStreamWrapper> ascii_wrap =
             new OutputStreamWrapper( output_prefix + "-ascii", std::ios::out);
-        
+
         stack.EnableAsciiIpv4All(ascii_wrap);
         for (uint16_t index = 0; index < num_flows; index++)
         {

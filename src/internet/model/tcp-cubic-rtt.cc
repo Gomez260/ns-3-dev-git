@@ -151,7 +151,8 @@ TcpCubicRtt::TcpCubicRtt()
       m_lastAck(Time::Min()),
       m_cubicDelta(Time::Min()),
       m_currRtt(Time::Min()),
-      m_sampleCnt(0)
+      m_sampleCnt(0),
+      m_rttIncreaseEwma(0.0)
 {
     NS_LOG_FUNCTION(this);
 }
@@ -191,6 +192,7 @@ TcpCubicRtt::TcpCubicRtt(const TcpCubicRtt& sock)
       m_cubicDelta(sock.m_cubicDelta),
       m_currRtt(sock.m_currRtt),
       m_sampleCnt(sock.m_sampleCnt),
+      m_rttIncreaseEwma(sock.m_rttIncreaseEwma),
       m_ackCnt(sock.m_ackCnt),
       m_tcpCwnd(sock.m_tcpCwnd)
 {
@@ -299,7 +301,8 @@ TcpCubicRtt::Update(Ptr<TcpSocketState> tcb, uint32_t segmentsAcked)
         NS_LOG_DEBUG("CUBIC-RTT: New epoch"
              << " | RTT min = " << m_delayMin.GetMilliSeconds() << " ms"
              << " | RTT reference = " << m_rttReference.GetMilliSeconds() << " ms"
-             << " | C adaptive = " << m_cEpoch);
+             << " | C adaptive = " << m_cEpoch
+             << " | RTT relative increase (EWMA) = " << m_rttIncreaseEwma);
         m_epochStart = Simulator::Now(); // record the beginning of an epoch
         m_ackCnt = segmentsAcked;
         m_tcpCwnd = segCwnd;
@@ -408,7 +411,9 @@ TcpCubicRtt::CalculateAdaptiveC() const
     double rttRatio = m_delayMin.GetSeconds() / m_rttReference.GetSeconds();
     double x = std::clamp(rttRatio - 1.0, -1.0, 1.0);
 
-    return m_c * (1.0 + m_alpha * x);
+    const double baseC = m_c * (1.0 + m_alpha * x);
+    const double inflationFactor = 1.0 + m_alpha * m_rttIncreaseEwma;
+    return baseC / inflationFactor;
 }
 
 double
@@ -446,6 +451,15 @@ TcpCubicRtt::PktsAcked(Ptr<TcpSocketState> tcb, uint32_t segmentsAcked, const Ti
     {
         m_delayMin = rtt;
     }
+
+    double relativeIncrease = 0.0;
+    if (m_delayMin > Time(0))
+    {
+        relativeIncrease = std::max(0.0,
+            (rtt - m_delayMin).GetSeconds() / m_delayMin.GetSeconds());
+    }
+    relativeIncrease = std::clamp(relativeIncrease, 0.0, 1.0);
+    m_rttIncreaseEwma = 0.9 * m_rttIncreaseEwma + 0.1 * relativeIncrease;
 
     /* hystart triggers when cwnd is larger than some threshold */
     if (m_hystart && tcb->m_cWnd <= tcb->m_ssThresh &&
@@ -537,7 +551,8 @@ TcpCubicRtt::GetSsThresh(Ptr<const TcpSocketState> tcb, uint32_t bytesInFlight)
     double beta = CalculateAdaptiveBeta();
     NS_LOG_DEBUG("CUBIC-RTT: Loss response"
              << " | RTT min = " << m_delayMin.GetMilliSeconds() << " ms"
-             << " | Beta adaptive = " << beta);
+             << " | Beta adaptive = " << beta
+             << " | RTT relative increase (EWMA) = " << m_rttIncreaseEwma);
 
     NS_LOG_DEBUG("Loss at cWnd=" << segCwnd
                                  << " segments in flight=" << bytesInFlight / tcb->m_segmentSize);
@@ -594,6 +609,7 @@ TcpCubicRtt::CubicReset(Ptr<const TcpSocketState> tcb)
     m_ackCnt = 0;
     m_tcpCwnd = 0;
     m_delayMin = Time::Min();
+    m_rttIncreaseEwma = 0.0;
     m_found = false;
 }
 

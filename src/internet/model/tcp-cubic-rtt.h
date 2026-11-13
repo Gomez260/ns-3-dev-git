@@ -144,6 +144,7 @@ class TcpCubicRtt : public TcpCongestionOps
     Time m_cubicDelta;         //!<  Time to wait after recovery before update
     Time m_currRtt;            //!<  Current Rtt
     uint32_t m_sampleCnt;      //!<  Count of samples for HyStart
+    double m_rttIncreaseEwma; //!< Smoothed relative RTT increase over the minimum RTT
     uint32_t m_ackCnt;         //!<  Count the number of ACKed packets
     uint32_t m_tcpCwnd;        //!<  Estimated tcp cwnd (for Reno-friendliness)
 

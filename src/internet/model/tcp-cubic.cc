@@ -125,7 +125,9 @@ TcpCubic::TcpCubic()
       m_lastAck(Time::Min()),
       m_cubicDelta(Time::Min()),
       m_currRtt(Time::Min()),
-      m_sampleCnt(0)
+      m_sampleCnt(0),
+      m_ackCnt(0),
+      m_tcpCwnd(0)
 {
     NS_LOG_FUNCTION(this);
 }
@@ -133,6 +135,7 @@ TcpCubic::TcpCubic()
 TcpCubic::TcpCubic(const TcpCubic& sock)
     : TcpCongestionOps(sock),
       m_fastConvergence(sock.m_fastConvergence),
+      m_tcpFriendliness(sock.m_tcpFriendliness),
       m_beta(sock.m_beta),
       m_betaEcn(sock.m_betaEcn),
       m_hystart(sock.m_hystart),
@@ -157,7 +160,9 @@ TcpCubic::TcpCubic(const TcpCubic& sock)
       m_lastAck(sock.m_lastAck),
       m_cubicDelta(sock.m_cubicDelta),
       m_currRtt(sock.m_currRtt),
-      m_sampleCnt(sock.m_sampleCnt)
+      m_sampleCnt(sock.m_sampleCnt),
+      m_ackCnt(sock.m_ackCnt),
+      m_tcpCwnd(sock.m_tcpCwnd)
 {
     NS_LOG_FUNCTION(this);
 }

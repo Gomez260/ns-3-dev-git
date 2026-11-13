@@ -152,7 +152,9 @@ TcpCubicRtt::TcpCubicRtt()
       m_cubicDelta(Time::Min()),
       m_currRtt(Time::Min()),
       m_sampleCnt(0),
-      m_rttIncreaseEwma(0.0)
+      m_rttIncreaseEwma(0.0),
+      m_ackCnt(0),
+      m_tcpCwnd(0)
 {
     NS_LOG_FUNCTION(this);
 }

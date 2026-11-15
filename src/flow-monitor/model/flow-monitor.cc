@@ -77,6 +77,10 @@ FlowMonitor::FlowMonitor()
     : m_enabled(false)
 {
     NS_LOG_FUNCTION(this);
+    // Keep the packet-tracking hash table below its rehash threshold for
+    // the typical number of outstanding packets in TCP experiments.
+    m_trackedPackets.max_load_factor(0.7f);
+    m_trackedPackets.reserve(16384);
 }
 
 void
@@ -153,7 +157,7 @@ FlowMonitor::ReportFirstTx(Ptr<FlowProbe> probe,
         return;
     }
     Time now = Simulator::Now();
-    TrackedPacket& tracked = m_trackedPackets[std::make_pair(flowId, packetId)];
+    TrackedPacket& tracked = m_trackedPackets[MakeTrackedPacketKey(flowId, packetId)];
     tracked.firstSeenTime = now;
     tracked.lastSeenTime = tracked.firstSeenTime;
     tracked.timesForwarded = 0;
@@ -187,7 +191,7 @@ FlowMonitor::ReportForwarding(Ptr<FlowProbe> probe,
         NS_LOG_DEBUG("FlowMonitor not enabled; returning");
         return;
     }
-    std::pair<FlowId, FlowPacketId> key(flowId, packetId);
+    const uint64_t key = MakeTrackedPacketKey(flowId, packetId);
     auto tracked = m_trackedPackets.find(key);
     if (tracked == m_trackedPackets.end())
     {
@@ -218,7 +222,7 @@ FlowMonitor::ReportLastRx(Ptr<FlowProbe> probe,
         NS_LOG_DEBUG("FlowMonitor not enabled; returning");
         return;
     }
-    auto tracked = m_trackedPackets.find(std::make_pair(flowId, packetId));
+    auto tracked = m_trackedPackets.find(MakeTrackedPacketKey(flowId, packetId));
     if (tracked == m_trackedPackets.end())
     {
         NS_LOG_WARN("Received packet last-tx report (flowId="
@@ -331,7 +335,7 @@ FlowMonitor::ReportDrop(Ptr<FlowProbe> probe,
     NS_LOG_DEBUG("++stats.packetsDropped["
                  << reasonCode << "]; // becomes: " << stats.packetsDropped[reasonCode]);
 
-    auto tracked = m_trackedPackets.find(std::make_pair(flowId, packetId));
+    auto tracked = m_trackedPackets.find(MakeTrackedPacketKey(flowId, packetId));
     if (tracked != m_trackedPackets.end())
     {
         // we don't need to track this packet anymore
@@ -359,7 +363,8 @@ FlowMonitor::CheckForLostPackets(Time maxDelay)
         if (now - iter->second.lastSeenTime >= maxDelay)
         {
             // packet is considered lost, add it to the loss statistics
-            auto flow = m_flowStats.find(iter->first.first);
+            const FlowId flowId = static_cast<FlowId>(iter->first >> 32);
+            auto flow = m_flowStats.find(flowId);
             NS_ASSERT(flow != m_flowStats.end());
             flow->second.lostPackets++;
 

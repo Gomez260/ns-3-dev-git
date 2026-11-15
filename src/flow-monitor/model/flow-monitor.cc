@@ -80,6 +80,18 @@ FlowMonitor::FlowMonitor()
 }
 
 void
+FlowMonitor::SetHistogramsEnabled(bool enabled)
+{
+    m_histogramsEnabled = enabled;
+}
+
+void
+FlowMonitor::SetProbeStatsEnabled(bool enabled)
+{
+    m_probeStatsEnabled = enabled;
+}
+
+void
 FlowMonitor::DoDispose()
 {
     NS_LOG_FUNCTION(this);
@@ -148,7 +160,10 @@ FlowMonitor::ReportFirstTx(Ptr<FlowProbe> probe,
     NS_LOG_DEBUG("ReportFirstTx: adding tracked packet (flowId=" << flowId << ", packetId="
                                                                  << packetId << ").");
 
-    probe->AddPacketStats(flowId, packetSize, Seconds(0));
+    if (m_probeStatsEnabled)
+    {
+        probe->AddPacketStats(flowId, packetSize, Seconds(0));
+    }
 
     FlowStats& stats = GetStatsForFlow(flowId);
     stats.txBytes += packetSize;
@@ -185,7 +200,10 @@ FlowMonitor::ReportForwarding(Ptr<FlowProbe> probe,
     tracked->second.lastSeenTime = Simulator::Now();
 
     Time delay = (Simulator::Now() - tracked->second.firstSeenTime);
-    probe->AddPacketStats(flowId, packetSize, delay);
+    if (m_probeStatsEnabled)
+    {
+        probe->AddPacketStats(flowId, packetSize, delay);
+    }
 }
 
 void
@@ -210,23 +228,35 @@ FlowMonitor::ReportLastRx(Ptr<FlowProbe> probe,
 
     Time now = Simulator::Now();
     Time delay = (now - tracked->second.firstSeenTime);
-    probe->AddPacketStats(flowId, packetSize, delay);
+    if (m_probeStatsEnabled)
+    {
+        probe->AddPacketStats(flowId, packetSize, delay);
+    }
 
     FlowStats& stats = GetStatsForFlow(flowId);
     stats.delaySum += delay;
-    stats.delayHistogram.AddValue(delay.GetSeconds());
+    if (m_histogramsEnabled)
+    {
+        stats.delayHistogram.AddValue(delay.GetSeconds());
+    }
     if (stats.rxPackets > 0)
     {
         Time jitter = stats.lastDelay - delay;
         if (jitter.IsStrictlyPositive())
         {
             stats.jitterSum += jitter;
-            stats.jitterHistogram.AddValue(jitter.GetSeconds());
+            if (m_histogramsEnabled)
+            {
+                stats.jitterHistogram.AddValue(jitter.GetSeconds());
+            }
         }
         else
         {
             stats.jitterSum -= jitter;
-            stats.jitterHistogram.AddValue(-jitter.GetSeconds());
+            if (m_histogramsEnabled)
+            {
+                stats.jitterHistogram.AddValue(-jitter.GetSeconds());
+            }
         }
     }
     stats.lastDelay = delay;
@@ -240,7 +270,10 @@ FlowMonitor::ReportLastRx(Ptr<FlowProbe> probe,
     }
 
     stats.rxBytes += packetSize;
-    stats.packetSizeHistogram.AddValue((double)packetSize);
+    if (m_histogramsEnabled)
+    {
+        stats.packetSizeHistogram.AddValue((double)packetSize);
+    }
     stats.rxPackets++;
     if (stats.rxPackets == 1)
     {
@@ -252,7 +285,10 @@ FlowMonitor::ReportLastRx(Ptr<FlowProbe> probe,
         Time interArrivalTime = now - stats.timeLastRxPacket;
         if (interArrivalTime > m_flowInterruptionsMinTime)
         {
-            stats.flowInterruptionsHistogram.AddValue(interArrivalTime.GetSeconds());
+            if (m_histogramsEnabled)
+            {
+                stats.flowInterruptionsHistogram.AddValue(interArrivalTime.GetSeconds());
+            }
         }
     }
     stats.timeLastRxPacket = now;
@@ -278,7 +314,10 @@ FlowMonitor::ReportDrop(Ptr<FlowProbe> probe,
         return;
     }
 
-    probe->AddPacketDropStats(flowId, packetSize, reasonCode);
+    if (m_probeStatsEnabled)
+    {
+        probe->AddPacketDropStats(flowId, packetSize, reasonCode);
+    }
 
     FlowStats& stats = GetStatsForFlow(flowId);
     stats.lostPackets++;

@@ -19,6 +19,7 @@
 #include "ns3/ptr.h"
 
 #include <map>
+#include <unordered_map>
 #include <vector>
 
 namespace ns3
@@ -291,8 +292,15 @@ class FlowMonitor : public Object
     /// FlowId --> FlowStats
     FlowStatsContainer m_flowStats;
 
-    /// (FlowId,PacketId) --> TrackedPacket
-    typedef std::map<std::pair<FlowId, FlowPacketId>, TrackedPacket> TrackedPacketMap;
+    /// Packed (FlowId, PacketId) --> TrackedPacket. Packet tracking is a hot path,
+    /// so use a hash table instead of an ordered tree.
+    using TrackedPacketMap = std::unordered_map<uint64_t, TrackedPacket>;
+
+    static uint64_t MakeTrackedPacketKey(FlowId flowId, FlowPacketId packetId)
+    {
+        return (static_cast<uint64_t>(flowId) << 32) |
+               static_cast<uint32_t>(packetId);
+    }
     TrackedPacketMap m_trackedPackets; //!< Tracked packets
     Time m_maxPerHopDelay;             //!< Minimum per-hop delay
     FlowProbeContainer m_flowProbes;   //!< all the FlowProbes

@@ -156,6 +156,12 @@ class FlowMonitor : public Object
     /// End monitoring flows *right now*
     void StopRightNow();
 
+    /// Enable or disable per-flow histogram collection.
+    void SetHistogramsEnabled(bool enabled);
+
+    /// Enable or disable per-probe packet statistics collection.
+    void SetProbeStatsEnabled(bool enabled);
+
     // --- methods to be used by the FlowMonitorProbe's only ---
     /// Register a new FlowProbe that will begin monitoring and report
     /// events to this monitor.  This method is normally only used by
@@ -297,6 +303,8 @@ class FlowMonitor : public Object
     EventId m_startEvent;               //!< Start event
     EventId m_stopEvent;                //!< Stop event
     bool m_enabled;                     //!< FlowMon is enabled
+    bool m_histogramsEnabled{true};     //!< Per-flow histogram collection
+    bool m_probeStatsEnabled{true};     //!< Per-probe statistics collection
     double m_delayBinWidth;             //!< Delay bin width (for histograms)
     double m_jitterBinWidth;            //!< Jitter bin width (for histograms)
     double m_packetSizeBinWidth;        //!< packet size bin width (for histograms)

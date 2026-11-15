@@ -962,6 +962,8 @@ main(int argc, char* argv[])
     if (flow_monitor)
     {
         monitor = flowHelper.InstallAll();
+        monitor->SetHistogramsEnabled(false);
+        monitor->SetProbeStatsEnabled(false);
 
         /*
          * Ignore the warm-up period and collect statistics only
@@ -989,8 +991,8 @@ main(int argc, char* argv[])
 
         monitor->SerializeToXmlFile(
             output_prefix + ".flowmonitor",
-            true,
-            true);
+            false,
+            false);
     }
 
     Simulator::Destroy();
